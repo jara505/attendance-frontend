@@ -1,121 +1,63 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState } from 'react';
+import AuthLayout from './features/auth/components/AuthLayout';
+import LoginForm from './features/auth/components/LoginForm';
+import ForceChangePassword from './features/auth/components/ForceChangePassword';
+import RegisterForm from './features/auth/components/RegisterForm';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [view, setView] = useState('login');
+  const [userRole, setUserRole] = useState(''); 
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+    <AuthLayout 
+      title={view === 'register' ? "Crear Cuenta" : (view === 'change-password' ? "Seguridad" : "Attendance System")} 
+      subtitle={view === 'register' ? "Únete al sistema de asistencia" : (view === 'change-password' ? "Actualiza tu acceso" : "Ingresa tus credenciales")}
+    >
+      
+      {view === 'login' && (
+        <LoginForm 
+          onLoginSuccess={(role, mustChange) => {
+            setUserRole(role); 
+            if (mustChange) setView('change-password');
+            else setView('dashboard');
+          }} 
+          onGoToRegister={() => setView('register')}
+        />
+      )}
+
+      {view === 'register' && (
+        <RegisterForm onBackToLogin={() => setView('login')} />
+      )}
+
+      {view === 'change-password' && (
+        <ForceChangePassword onComplete={() => setView('dashboard')} />
+      )}
+
+      {view === 'dashboard' && (
+        <div className="flex flex-col items-center gap-4 py-8 animate-fade-in text-center">
+          <h2 className="text-2xl font-bold text-white">¡Bienvenido!</h2>
+          
+          <div className="mt-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+            <p className="text-blue-400 font-medium">
+              Estás en el Panel de {userRole.toUpperCase()}
+            </p>
+          </div>
+
+          <p className="text-slate-400 text-sm max-w-[250px]">
+            Has superado todas las reglas de negocio y validaciones de seguridad.
           </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+          <button 
+            onClick={() => setView('login')} 
+            className="text-sm text-blue-400 mt-6 hover:underline"
+          >
+            Cerrar sesión
+          </button>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      )}
+      
+    </AuthLayout>
+  );
 }
 
-export default App
+export default App;
