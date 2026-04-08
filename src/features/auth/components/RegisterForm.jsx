@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import Select from './Select';
 import Input from './Input';
 import Button from './Button';
 const RegisterForm = ({ onBackToLogin }) => {

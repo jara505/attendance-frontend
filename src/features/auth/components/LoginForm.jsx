@@ -2,34 +2,57 @@ import { useState } from 'react';
 import Input from './Input';
 import Button from './Button';
 
-// 1. AGREGAMOS onGoToRegister AQUÍ ABAJO
 const LoginForm = ({ onLoginSuccess, onGoToRegister }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
-        setTimeout(() => {
+        try {
+
+            const response = await fetch("/api/v1/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password
+                })
+            });
+
+            const data = await response.json();
+
             setLoading(false);
-            if (email === 'nuevo@attendance.com') {
-                onLoginSuccess('alumno', true);
+
+            if (!response.ok) {
+                setError("Credenciales incorrectas");
                 return;
             }
-            if (email === 'admin@attendance.com' && password === '123456') {
-                onLoginSuccess('admin', false);
-                return;
-            }
-            setError('Credenciales incorrectas. Intenta con nuevo@attendance.com');
-        }, 1500);
+
+        
+            localStorage.setItem("token", data.access_token);
+
+        
+            const role = data.role;
+
+        
+            onLoginSuccess(role, false);
+
+        } catch (err) {
+            setLoading(false);
+            setError("No se pudo conectar con el servidor");
+        }
     };
 
     return (
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+
             <Input
                 label="Email"
                 type="email"
@@ -51,15 +74,23 @@ const LoginForm = ({ onLoginSuccess, onGoToRegister }) => {
                 Iniciar Sesión
             </Button>
 
-            {/* 2. AGREGAMOS EL BLOQUE DE REGISTRO AQUÍ */}
             <div className="text-center flex flex-col gap-2">
                 <p className="text-slate-400 text-sm">
                     ¿Eres nuevo? Usa el correo de la institución.
                 </p>
+
                 <p className="text-slate-400 text-sm">
-                    ¿No tienes cuenta? <button type="button" onClick={onGoToRegister} className="text-blue-400 font-medium hover:underline">Regístrate</button>
+                    ¿No tienes cuenta?{" "}
+                    <button
+                        type="button"
+                        onClick={onGoToRegister}
+                        className="text-blue-400 font-medium hover:underline"
+                    >
+                        Regístrate
+                    </button>
                 </p>
             </div>
+
         </form>
     );
 };
