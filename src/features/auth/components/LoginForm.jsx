@@ -35,14 +35,16 @@ const LoginForm = ({ onLoginSuccess, onGoToRegister }) => {
                 return;
             }
 
-        
+            // Guardar datos en localStorage
             localStorage.setItem("token", data.access_token);
+            localStorage.setItem("role", data.role);
+            localStorage.setItem("must_change_password", data.must_change_password);
 
-        
             const role = data.role;
+            const mustChangePassword = data.must_change_password;
 
-        
-            onLoginSuccess(role, false);
+            // Notificar al componente padre
+            onLoginSuccess(role, mustChangePassword);
 
         } catch (err) {
             setLoading(false);
