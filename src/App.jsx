@@ -22,6 +22,8 @@ function App() {
           ? "Únete al sistema de asistencia"
           : view === 'change-password'
           ? "Actualiza tu acceso"
+          : view === 'dashboard'
+          ? "Panel de control"
           : "Ingresa tus credenciales"
       }
     >
