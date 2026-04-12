@@ -58,7 +58,7 @@ const LoginForm = ({ onLoginSuccess, onGoToRegister }) => {
             <Input
                 label="Email"
                 type="email"
-                placeholder="usuario@attendance.com"
+                placeholder="user@catsivard.edu"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 error={error}
@@ -76,11 +76,7 @@ const LoginForm = ({ onLoginSuccess, onGoToRegister }) => {
                 Iniciar Sesión
             </Button>
 
-            <div className="text-center flex flex-col gap-2">
-                <p className="text-slate-400 text-sm">
-                    ¿Eres nuevo? Usa el correo de la institución.
-                </p>
-
+            {/* <div className="text-center flex flex-col gap-2">
                 <p className="text-slate-400 text-sm">
                     ¿No tienes cuenta?{" "}
                     <button
@@ -91,7 +87,7 @@ const LoginForm = ({ onLoginSuccess, onGoToRegister }) => {
                         Regístrate
                     </button>
                 </p>
-            </div>
+            </div> */}
 
         </form>
     );
