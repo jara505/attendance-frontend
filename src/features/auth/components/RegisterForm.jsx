@@ -25,7 +25,7 @@ const RegisterForm = ({ onBackToLogin }) => {
     return (
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <Input label="Nombre Completo" placeholder="Ej. Juan Pérez" />
-            <Input label="Email" type="email" placeholder="usuario@attendance.com" />
+            <Input label="Email" type="email" placeholder="user@catsivard.edu" />
 
             <Select
                 label="Tipo de Usuario"
