@@ -1,6 +1,11 @@
-@import "tailwindcss";
+@import "tailwindcss"; /* <--- ESTA LÍNEA ES LA MÁS IMPORTANTE */
 
-:root {
-  background-color: #08060d;
-  color: white;
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100% !important;
+  min-height: 100vh !important;
+  /* El background-color aquí es el que elimina los costados negros */
+  background-color: #08060d !important;
+  color: white; /* Para que el texto no se pierda en el fondo oscuro */
 }
