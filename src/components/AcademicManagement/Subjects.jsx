@@ -1,3 +1,5 @@
+// Aquí manejamos el subject_id y su relación con la carrera.
+
 import React from 'react';
 
 const Subjects = () => {

@@ -1,3 +1,6 @@
+//este manejara el boton de login y register, para mostrar un spinner mientras se procesa la solicitud y evitar múltiples clics.
+
+
 import React from 'react';
 
 const Button = ({ children, onClick, loading, type = "button", variant = "primary" }) => {
