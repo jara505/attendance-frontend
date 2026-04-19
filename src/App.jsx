@@ -1,40 +1,27 @@
-import React, { useState } from 'react';
-import AuthLayout from './features/auth/components/AuthLayout';
-import LoginForm from './features/auth/components/LoginForm';
-// IMPORTA EL NUEVO DASHBOARD
-import AcademicDashboard from './components/AcademicManagement/AcademicDashboard';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute } from './routes/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState('');
-
-  // Simulación de login exitoso
-  const handleLoginSuccess = (role) => {
-    setUserRole(role);
-    setIsLoggedIn(true);
-    // NOTA: Aquí iría la lógica de 'must_change_password' si ya la tienes implementada.
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserRole('');
-  };
-
-  // Muestra el módulo de Gestión Académica si está logueado
-  if (isLoggedIn) {
-    return (
-      <AcademicDashboard 
-        userRole={userRole} 
-        onLogout={handleLogout} 
-      />
-    );
-  }
-
-  // Muestra el Login por defecto
   return (
-    <AuthLayout title="CatsiVard" subtitle="Gestión Académica">
-      <LoginForm onLoginSuccess={handleLoginSuccess} />
-    </AuthLayout>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
