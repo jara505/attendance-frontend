@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Input from './Input';
 import Button from './Button';
+import api from '@/config/axios';
 
 const LoginForm = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState('');
@@ -14,28 +15,16 @@ const LoginForm = ({ onLoginSuccess }) => {
         setLoading(true);
 
         try {
-            const response = await fetch("/api/v1/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: email, password: password })
-            });
-
-            const data = await response.json();
-            setLoading(false);
-
-            if (!response.ok) {
-                setError("Credenciales incorrectas");
-                return;
-            }
+            const { data } = await api.post('/auth/login', { email, password });
 
             localStorage.setItem("token", data.access_token);
             localStorage.setItem("role", data.role);
             localStorage.setItem("must_change_password", data.must_change_password);
 
             onLoginSuccess(data.role, data.must_change_password);
-        } catch {
+        } catch (err) {
             setLoading(false);
-            setError("No se pudo conectar con el servidor");
+            setError(err.response?.status === 401 ? "Credenciales incorrectas" : "No se pudo conectar con el servidor");
         }
     };
 
