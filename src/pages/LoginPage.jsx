@@ -12,7 +12,8 @@ export default function LoginPage() {
 
   const handleLoginSuccess = (role, mustChangePassword) => {
     login(role, mustChangePassword);
-    navigate(from, { replace: true });
+    const destination = mustChangePassword ? '/change-password' : from;
+    navigate(destination, { replace: true });
   };
 
   return (
