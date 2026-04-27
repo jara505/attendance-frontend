@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import AuthLayout from '../features/auth/components/AuthLayout';
 import ForceChangePassword from '../features/auth/components/ForceChangePassword';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate();

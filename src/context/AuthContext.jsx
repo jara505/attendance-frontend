@@ -1,22 +1,20 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState } from 'react';
+import { AuthContext } from './authContext';
 
-const AuthContext = createContext(null);
+function readInitialUser() {
+  // Synchronous restore so consumers get the correct value on first render.
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+  const mustChangePassword = localStorage.getItem('must_change_password');
+
+  if (token && role) {
+    return { role, mustChangePassword: mustChangePassword === 'true' };
+  }
+  return null;
+}
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Restore session from localStorage on mount
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
-    const mustChangePassword = localStorage.getItem('must_change_password');
-
-    if (token && role) {
-      setUser({ role, mustChangePassword: mustChangePassword === 'true' });
-    }
-    setLoading(false);
-  }, []);
+  const [user, setUser] = useState(readInitialUser);
 
   const login = (role, mustChangePassword = false) => {
     localStorage.setItem('role', role);
@@ -31,17 +29,11 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // `loading` is kept for API compatibility with consumers that check it.
+  // Session is restored synchronously, so it is always false.
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading: false }}>
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
 }
