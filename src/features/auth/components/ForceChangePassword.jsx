@@ -59,7 +59,7 @@ const ForceChangePassword = ({ onComplete }) => {
             // Si todo salió bien
             onComplete();
 
-        } catch (err) {
+        } catch {
             setLoading(false);
             setError("No se pudo conectar con el servidor");
         }
