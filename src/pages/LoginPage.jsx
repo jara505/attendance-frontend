@@ -17,7 +17,7 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthLayout title="CatsiVard" subtitle="Gestión Académica">
+    <AuthLayout title="CatsiVard" subtitle="Ingresa tus credenciales para continuar">
       <LoginForm onLoginSuccess={handleLoginSuccess} />
     </AuthLayout>
   );
