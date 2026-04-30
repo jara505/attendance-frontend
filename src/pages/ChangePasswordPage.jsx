@@ -1,7 +1,7 @@
-import { useNavigate } from 'react-router-dom';
-import AuthLayout from '../features/auth/components/AuthLayout';
-import ForceChangePassword from '../features/auth/components/ForceChangePassword';
-import { useAuth } from '../context/useAuth';
+import { useNavigate } from "react-router-dom";
+import AuthLayout from "../features/auth/components/AuthLayout";
+import ForceChangePassword from "../features/auth/components/ForceChangePassword";
+import { useAuth } from "../context/useAuth";
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate();
@@ -9,8 +9,8 @@ export default function ChangePasswordPage() {
 
   const handleComplete = () => {
     login(user.role, false);
-    localStorage.setItem('must_change_password', 'false');
-    navigate('/dashboard', { replace: true });
+    localStorage.setItem("must_change_password", "false");
+    navigate("/dashboard", { replace: true });
   };
 
   return (

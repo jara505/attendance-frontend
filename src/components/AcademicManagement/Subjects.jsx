@@ -1,14 +1,18 @@
 // Aquí manejamos el subject_id y su relación con la carrera.
 
-import React from 'react';
+import React from "react";
 
 const Subjects = () => {
   return (
     <div className="p-6 text-white">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-blue-400">Gestión de Materias</h2>
-          <p className="text-sm text-gray-500">Administra el catálogo de asignaturas</p>
+          <h2 className="text-2xl font-bold text-blue-400">
+            Gestión de Materias
+          </h2>
+          <p className="text-sm text-gray-500">
+            Administra el catálogo de asignaturas
+          </p>
         </div>
         <button className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition shadow-lg">
           + Nueva Materia
@@ -16,9 +20,9 @@ const Subjects = () => {
       </div>
 
       <div className="mb-4">
-        <input 
-          type="text" 
-          placeholder="Buscar por nombre o ID..." 
+        <input
+          type="text"
+          placeholder="Buscar por nombre o ID..."
           className="w-full max-w-md bg-[#13111a] border border-gray-800 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
         />
       </div>
@@ -39,8 +43,12 @@ const Subjects = () => {
               <td className="p-4 font-medium">Bases de Datos I</td>
               <td className="p-4 text-gray-400">Ing. en Sistemas</td>
               <td className="p-4">
-                <button className="text-gray-400 hover:text-white mr-3">Editar</button>
-                <button className="text-red-500/70 hover:text-red-400">Eliminar</button>
+                <button className="text-gray-400 hover:text-white mr-3">
+                  Editar
+                </button>
+                <button className="text-red-500/70 hover:text-red-400">
+                  Eliminar
+                </button>
               </td>
             </tr>
           </tbody>

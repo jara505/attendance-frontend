@@ -1,10 +1,12 @@
-import React from 'react';
+import React from "react";
 
 const Courses = () => {
   return (
     <div className="p-6 bg-[#08060d] min-height-screen text-white">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-blue-400">Gestión de Carreras</h2>
+        <h2 className="text-2xl font-bold text-blue-400">
+          Gestión de Carreras
+        </h2>
         <button className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition shadow-lg">
           + Nueva Carrera
         </button>
@@ -23,7 +25,9 @@ const Courses = () => {
             <tr className="border-b border-gray-800/50 hover:bg-white/5 transition">
               <td className="p-4 text-sm">C001</td>
               <td className="p-4 font-medium">Ingeniería en Sistemas</td>
-              <td className="p-4 text-blue-400 cursor-pointer hover:underline">Editar</td>
+              <td className="p-4 text-blue-400 cursor-pointer hover:underline">
+                Editar
+              </td>
             </tr>
           </tbody>
         </table>

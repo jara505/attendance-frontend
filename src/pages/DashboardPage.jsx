@@ -1,6 +1,6 @@
-import { useNavigate } from 'react-router-dom';
-import AcademicDashboard from '../components/AcademicManagement/AcademicDashboard';
-import { useAuth } from '../context/useAuth';
+import { useNavigate } from "react-router-dom";
+import AcademicDashboard from "../components/AcademicManagement/AcademicDashboard";
+import { useAuth } from "../context/useAuth";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -8,13 +8,8 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
-  return (
-    <AcademicDashboard
-      userRole={user?.role}
-      onLogout={handleLogout}
-    />
-  );
+  return <AcademicDashboard userRole={user?.role} onLogout={handleLogout} />;
 }

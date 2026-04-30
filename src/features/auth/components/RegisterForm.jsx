@@ -1,13 +1,12 @@
-import React, { useState } from 'react'; 
-import Select from './Select';
-import Input from './Input'; 
-import Button from './Button';
+import React, { useState } from "react";
+import Select from "./Select";
+import Input from "./Input";
+import Button from "./Button";
 
 const RegisterForm = ({ onBackToLogin }) => {
-  const [role, setRole] = useState('alumno');
+  const [role, setRole] = useState("alumno");
   const [loading, setLoading] = useState(false);
 
-  
   const handleSubmit = (e) => {
     e.preventDefault();
     setLoading(true);
@@ -19,17 +18,17 @@ const RegisterForm = ({ onBackToLogin }) => {
   };
 
   const roles = [
-    { value: 'alumno', label: 'Soy Alumno' },
-    { value: 'docente', label: 'Soy Docente' },
-    { value: 'admin', label: 'Soy Administrador' }
+    { value: "alumno", label: "Soy Alumno" },
+    { value: "docente", label: "Soy Docente" },
+    { value: "admin", label: "Soy Administrador" },
   ];
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <Input label="Nombre Completo" placeholder="Ej. Juan Pérez" />
       <Input label="Email" type="email" placeholder="usuario@attendance.com" />
-      
-      <Select 
+
+      <Select
         label="Tipo de Usuario"
         options={roles}
         value={role}
@@ -40,9 +39,9 @@ const RegisterForm = ({ onBackToLogin }) => {
         Crear Cuenta
       </Button>
 
-      <button 
-        type="button" 
-        onClick={onBackToLogin} 
+      <button
+        type="button"
+        onClick={onBackToLogin}
         className="text-sm text-slate-400 hover:text-white underline"
       >
         Volver al Login
