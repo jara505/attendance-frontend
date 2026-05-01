@@ -1,34 +1,34 @@
 import React, { useEffect, useState } from "react";
 import SessionCards from "./SessionCards";
+import api from "../../config/axios";
 
 const AcademicDashboard = ({ userRole = "teacher", onLogout }) => {
   const [classes, setClasses] = useState([]);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [sessionDate, setSessionDate] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("token");
-
         // Fetch classes and profile in parallel
         const [classesResponse, profileResponse] = await Promise.all([
-          fetch("/api/v1/academic/my-classes", {
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch("/api/v1/profile/me", {
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+          api.get("/academic/my-classes"),
+          api.get("/profile/me"),
         ]);
 
         // Process classes
-        if (classesResponse.ok) {
-          const classesData = await classesResponse.json();
+        if (classesResponse.status === 200) {
+          const classesData = classesResponse.data;
+          // Guardar la fecha de las clases del backend
+          setSessionDate(classesData.date || "");
+
           const formattedClasses = classesData.classes.map((cls) => ({
-            status: cls.status === "ACTIVE" ? "activa" : "próxima",
+            // Estado temporal de la clase (future/past/active) — normalizado a lowercase
+            status: cls.status ? String(cls.status).toLowerCase() : null,
+            start_time: cls.start_time || null,
+            end_time: cls.end_time || null,
             career: cls.course,
             career_id: cls.course,
             subject: cls.subject,
@@ -40,6 +40,9 @@ const AcademicDashboard = ({ userRole = "teacher", onLogout }) => {
             starts_in: cls.remaining_minutes
               ? `${cls.remaining_minutes} min`
               : null,
+            // Session info
+            session_id: cls.session_id || null,
+            session_status: cls.session_status || null,
           }));
           setClasses(formattedClasses);
         } else {
@@ -47,9 +50,8 @@ const AcademicDashboard = ({ userRole = "teacher", onLogout }) => {
         }
 
         // Process profile
-        if (profileResponse.ok) {
-          const profileData = await profileResponse.json();
-          setProfile(profileData);
+        if (profileResponse.status === 200) {
+          setProfile(profileResponse.data);
         }
 
         setLoading(false);
@@ -128,7 +130,7 @@ const AcademicDashboard = ({ userRole = "teacher", onLogout }) => {
             <p className="text-red-400">{error}</p>
           </div>
         ) : (
-          <SessionCards classes={classes} />
+          <SessionCards classes={classes} sessionDate={sessionDate} />
         )}
       </main>
 
