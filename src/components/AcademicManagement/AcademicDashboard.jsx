@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import SessionCards from "./SessionCards";
 import api from "../../config/axios";
+import UserAvatar from "./UserAvatar";
 
 const AcademicDashboard = ({ userRole = "teacher", onLogout }) => {
   const [classes, setClasses] = useState([]);
@@ -96,22 +97,8 @@ const AcademicDashboard = ({ userRole = "teacher", onLogout }) => {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:block text-right">
-            <p className="font-semibold text-sm">
-              Bienvenido, {profile?.first_name} {profile?.last_name}
-            </p>
-            <p className="text-xs text-blue-400 font-mono uppercase">
-              Rol: {profile?.role || userRole}
-            </p>
+            <UserAvatar onLogout={onLogout} />
           </div>
-
-          <button
-            onClick={onLogout}
-            className="text-xs text-gray-500 hover:text-red-400 transition font-medium border border-gray-800 px-4 py-2 rounded-full bg-[#13111a]"
-          >
-            Cerrar sesión
-          </button>
-        </div>
       </header>
 
       <main>
