@@ -103,13 +103,30 @@ const AcademicDashboard = ({ userRole = "teacher", onLogout }) => {
 
       <main>
         {/* Banner de Bienvenida */}
-        <div className="mb-10 p-6 bg-blue-950/20 border border-blue-900 rounded-2xl">
-          <h2 className="text-2xl font-bold">Tus Clases</h2>
-          <p className="text-blue-300 text-sm mt-1">
-            {classes.length > 0
-              ? `Tienes ${classes.length} sesiones programadas.`
-              : "No hay clases programadas por ahora."}
-          </p>
+        <div className="mb-10 p-6 bg-blue-950/20 border border-blue-900 rounded-2xl flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="text-2xl font-bold">Tus Clases</h2>
+            <p className="text-blue-300 text-sm mt-1">
+              {classes.length > 0
+                ? `Tienes ${classes.length} sesiones programadas.`
+                : "No hay clases programadas por ahora."}
+            </p>
+          </div>
+          {sessionDate && (
+            <div className="text-right">
+              <p className="text-[10px] text-blue-300/70 uppercase tracking-widest font-bold">
+                Fecha
+              </p>
+              <p className="text-sm font-semibold text-gray-200 capitalize">
+                {new Date(sessionDate).toLocaleDateString("es-ES", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
+            </div>
+          )}
         </div>
 
         {error ? (
@@ -117,7 +134,7 @@ const AcademicDashboard = ({ userRole = "teacher", onLogout }) => {
             <p className="text-red-400">{error}</p>
           </div>
         ) : (
-          <SessionCards classes={classes} sessionDate={sessionDate} />
+          <SessionCards classes={classes} />
         )}
       </main>
 

@@ -7,7 +7,7 @@ import {
   finishSession,
 } from "../../services/sessionService";
 
-const SessionCards = ({ classes = [], sessionDate = "" }) => {
+const SessionCards = ({ classes = [] }) => {
   const [activeSession, setActiveSession] = useState(null);
   const [sessionData, setSessionData] = useState(null);
   const [attendance, setAttendance] = useState(null);
@@ -16,28 +16,28 @@ const SessionCards = ({ classes = [], sessionDate = "" }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [finishedSessions, setFinishedSessions] = useState({});
+  const [summaries, setSummaries] = useState({}); // {[session_id]: {present, late, total_enrolled}}
+
+  // Fetch attendance summary for finished sessions (cached)
+  const fetchSummary = useCallback(async (sessionId) => {
+    try {
+      const data = await getSessionAttendance(sessionId);
+      setSummaries(prev => ({
+        ...prev,
+        [sessionId]: {
+          present: data.present || 0,
+          late: data.late || 0,
+          total_enrolled: data.total_enrolled || 0
+        }
+      }));
+    } catch (err) {
+      console.error('Error fetching summary:', err);
+    }
+  }, []);
 
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
   const pollingRef = useRef(null);
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) {
-      return new Date().toLocaleDateString("es-ES", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    }
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("es-ES", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const formattedDate = formatDate(sessionDate);
 
   // Convertir hora 24h a 12h con AM/PM
   const formatTime12h = (time24) => {
@@ -92,6 +92,21 @@ const SessionCards = ({ classes = [], sessionDate = "" }) => {
     const start = buildTodayAt(clase.start_time);
     if (!start) return false;
     return new Date() < start;
+  };
+
+  // Texto contextual de countdown según estado temporal
+  const getCountdown = (clase) => {
+    if (clase.status === "future" && clase.starts_in) {
+      return `Empieza en ${clase.starts_in}`;
+    }
+    if (clase.status === "active") {
+      const end = buildTodayAt(clase.end_time);
+      if (end) {
+        const diffMin = Math.floor((end - new Date()) / 60000);
+        if (diffMin > 0) return `Termina en ${diffMin} min`;
+      }
+    }
+    return null;
   };
 
   useEffect(() => {
@@ -191,8 +206,9 @@ const SessionCards = ({ classes = [], sessionDate = "" }) => {
     }
   };
 
-  const handleExtend = async (clase) => {
-    if (!clase.session_id && !finishedSessions[clase.class_id]) {
+const handleExtend = async (clase) => {
+    const sessionId = clase.session_id || finishedSessions[clase.class_id];
+    if (!sessionId) {
       setError("No hay sesión");
       return;
     }
@@ -201,7 +217,6 @@ const SessionCards = ({ classes = [], sessionDate = "" }) => {
     setError(null);
 
     try {
-      const sessionId = clase.session_id || finishedSessions[clase.class_id];
       const activated = await activateSession(sessionId, 10);
       setSessionData(activated);
       setActiveSession(clase.class_id);
@@ -213,6 +228,8 @@ const SessionCards = ({ classes = [], sessionDate = "" }) => {
         return newState;
       });
       startPolling(sessionId);
+      // Fetch attendance after activating
+      fetchSummary(sessionId);
     } catch (err) {
       setError(err.response?.data?.message || "Error");
     } finally {
@@ -303,110 +320,151 @@ const SessionCards = ({ classes = [], sessionDate = "" }) => {
             key={index}
             className={`relative bg-white/5 border ${
               activeSession === clase.class_id
-                ? "border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.1)]"
-                : "border-white/10"
-            } rounded-2xl p-7 transition-all duration-300`}
+                ? "border-blue-500 shadow-[0_0_24px_rgba(59,130,246,0.2)]"
+                : clase.status === "past"
+                  ? "border-white/5 opacity-60 hover:opacity-100"
+                  : "border-white/10 hover:border-white/25 hover:shadow-lg hover:shadow-black/30 hover:-translate-y-0.5"
+            } rounded-2xl p-6 transition-all duration-300`}
           >
-            <div className="absolute top-6 right-7 flex items-center gap-2.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${badge.dot} ${badge.pulse ? "animate-pulse" : ""}`}
-              ></span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-300">
-                {badge.label}
-              </span>
+            {/* Header: badge inline + group chip */}
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div
+                role="status"
+                aria-label={`Estado de la clase: ${badge.label}`}
+                className="flex items-center gap-2 px-2.5 py-1 bg-white/5 rounded-full border border-white/10"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`h-2 w-2 rounded-full ${badge.dot} ${badge.pulse ? "animate-pulse" : ""}`}
+                />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-300">
+                  {badge.label}
+                </span>
+              </div>
+              {clase.group && (
+                <span className="text-xs font-semibold text-gray-400 px-2 py-0.5 bg-white/5 border border-white/10 rounded-md truncate max-w-[55%]">
+                  {clase.group}
+                </span>
+              )}
             </div>
 
-            <div className="space-y-6 mt-6">
+            <div className="space-y-5">
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-                  Materia
-                </p>
-                <p className="text-2xl font-bold text-blue-100">
+                <h3 className="text-xl font-bold text-blue-100 line-clamp-2 leading-tight">
                   {clase.subject}
-                </p>
-                <p className="text-xs text-gray-500 font-mono mt-1">
-                  Class_id: {clase.class_id}
-                </p>
+                </h3>
+                {clase.career && (
+                  <p className="text-xs text-gray-400 mt-1 truncate">
+                    {clase.career}
+                  </p>
+                )}
               </div>
 
-              <div className="bg-white/5 p-4 rounded-xl border border-white/10 flex items-center justify-between">
-                <div className="opacity-10">
-                  <div className="grid grid-cols-2 gap-0.5">
-                    <div className="w-3 h-3 bg-white"></div>
-                    <div className="w-3 h-3 bg-white"></div>
-                  </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10 flex items-center justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                    Horario
+                  </p>
+                  <p className="text-sm font-semibold text-gray-200 truncate">
+                    {clase.start_time && clase.end_time
+                      ? `${formatTime12h(clase.start_time)} – ${formatTime12h(clase.end_time)}`
+                      : clase.time
+                        ? formatTime12h(clase.time.split(" - ")[0])
+                        : "—"}
+                  </p>
+                  {getCountdown(clase) && (
+                    <p className="text-[11px] text-blue-400 font-medium mt-0.5">
+                      {getCountdown(clase)}
+                    </p>
+                  )}
                 </div>
-                <div className="text-right">
-                  <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest">
+                <div className="text-right shrink-0">
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
                     {activeSession === clase.class_id
                       ? "Tiempo restante"
-                      : "QR"}
+                      : clase.session_status === "FINISHED" || finishedSessions[clase.class_id]
+                        ? "Asistencia"
+                        : "Sesión"}
                   </p>
-                  <p className="text-xl font-mono font-bold text-blue-400">
-                    {activeSession === clase.class_id ? remainingTime : "--:--"}
-                  </p>
+                  {clase.session_status === "FINISHED" || finishedSessions[clase.class_id] ? (
+                    // Mini-stat for finished sessions
+                    (() => {
+                      const sessionId = clase.session_id || finishedSessions[clase.class_id];
+                      const summary = summaries[sessionId];
+                      if (!summary) return (
+                        <p className="text-lg font-mono font-bold text-gray-500">—</p>
+                      );
+                      return (
+                        <div className="text-right">
+                          <p className="text-lg font-mono font-bold text-green-400">
+                            {summary.present}/{summary.total_enrolled}
+                          </p>
+                          {summary.late > 0 && (
+                            <p className="text-[11px] text-yellow-400">
+                              +{summary.late} tarde
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <p className="text-lg font-mono font-bold text-blue-400">
+                      {activeSession === clase.class_id ? remainingTime : "--:--"}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="flex justify-between text-[11px] text-gray-500 font-medium pt-2">
-                <div>
-                  <p>Fecha</p>
-                  <p className="text-gray-300">{formattedDate}</p>
-                </div>
-                <div className="text-right">
-                  <p>Horario</p>
-                  <p className="text-gray-300">
-                    {clase.time
-                      ? formatTime12h(clase.time.split(" - ")[0])
-                      : ""}
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-4 h-16 flex items-center justify-center relative">
+              <div className="pt-2">
                 {activeSession === clase.class_id ? (
                   <button
                     onClick={() => setIsMinimized(false)}
-                    className="absolute -bottom-2 right-0 p-2.5 bg-white/10 border border-blue-500/50 rounded-xl text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-lg shadow-blue-500/20 active:scale-90"
-                    title="Maximizar"
+                    aria-label="Volver a la sesión activa"
+                    className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98]"
                   >
                     <svg
-                      width="22"
-                      height="22"
+                      width="18"
+                      height="18"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="2.2"
+                      aria-hidden="true"
                     >
                       <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
                     </svg>
+                    Volver a la sesión
                   </button>
                 ) : clase.session_status === "FINISHED" ||
                   finishedSessions[clase.class_id] ? (
                   <button
                     onClick={() => handleExtend(clase)}
                     disabled={loading}
-                    className="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-4 rounded-xl transition-all"
+                    aria-label="Activar modo extendido"
+                    className="w-full flex items-center justify-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50 active:scale-[0.98]"
                   >
-                    {loading ? "..." : "Modo extendido"}
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      aria-hidden="true"
+                    >
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M12 7v5l3 2" />
+                    </svg>
+                    {loading ? "Procesando..." : "Modo extendido"}
                   </button>
                 ) : clase.session_status === "ACTIVE" ? (
                   <button
                     onClick={() => handleResume(clase)}
                     disabled={loading}
-                    className="absolute -bottom-2 right-0 p-2.5 bg-white/10 border border-blue-500/50 rounded-xl text-blue-400 hover:bg-blue-500 hover:text-white transition-all shadow-lg shadow-blue-500/20 active:scale-90 disabled:opacity-50"
-                    title="Maximizar"
+                    aria-label="Reanudar sesión activa"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 active:scale-[0.98]"
                   >
-                    <svg
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-                    </svg>
+                    {loading ? "..." : "Reanudar sesión"}
                   </button>
                 ) : (
                   <button
@@ -416,7 +474,8 @@ const SessionCards = ({ classes = [], sessionDate = "" }) => {
                       hasNotStarted(clase) ||
                       clase.status === "past"
                     }
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="Iniciar asistencia"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none active:scale-[0.98]"
                     title={
                       hasNotStarted(clase)
                         ? "La clase aún no ha comenzado"
@@ -433,6 +492,9 @@ const SessionCards = ({ classes = [], sessionDate = "" }) => {
 
             {activeSession === clase.class_id && !isMinimized && (
               <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={`session-title-${clase.class_id}`}
                 style={{
                   left: `calc(50% + ${modalPos.x}px)`,
                   top: `calc(50% + ${modalPos.y}px)`,
@@ -443,7 +505,10 @@ const SessionCards = ({ classes = [], sessionDate = "" }) => {
               >
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h3 className="text-xl font-bold text-white">
+                    <h3
+                      id={`session-title-${clase.class_id}`}
+                      className="text-xl font-bold text-white"
+                    >
                       Gestión: {clase.subject}
                     </h3>
                     <p className="text-[10px] text-gray-500 font-mono">
@@ -452,7 +517,8 @@ const SessionCards = ({ classes = [], sessionDate = "" }) => {
                   </div>
                   <button
                     onClick={() => setIsMinimized(true)}
-                    className="p-2 hover:bg-white/10 rounded-xl text-gray-400"
+                    aria-label="Minimizar panel de sesión"
+                    className="p-2 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors"
                   >
                     <svg
                       width="20"
