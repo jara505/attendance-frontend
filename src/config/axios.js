@@ -1,13 +1,12 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1',
+  baseURL: 'http://localhost:8000/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Interceptor para agregar el token en cada request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -19,7 +18,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor para manejar errores globales
 api.interceptors.response.use(
   (response) => response,
   (error) => {

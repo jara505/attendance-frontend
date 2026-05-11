@@ -9,74 +9,83 @@ const StudentDashboard = ({ userRole = "student", onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sessionDate, setSessionDate] = useState("");
+  const [markedSessions, setMarkedSessions] = useState([]);
+
+  const handleCheckInSuccess = (sessionId) => {
+    if (sessionId) {
+      setMarkedSessions((prev) => [...new Set([...prev, sessionId])]);
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      const classesResponse = await api.get("/student/classes/today");
+
+      if (classesResponse.status === 200) {
+        const classesData = classesResponse.data;
+
+        setSessionDate(classesData.date || "");
+
+        const formattedClasses = classesData.classes.map((cls) => ({
+          status: cls.status ? String(cls.status).toLowerCase() : null,
+          start_time: cls.start_time || null,
+          end_time: cls.end_time || null,
+          career: cls.course,
+          career_id: cls.course,
+          subject: cls.subject,
+          subject_id: cls.id_class,
+          time: `${cls.start_time} - ${cls.end_time}`,
+          group: cls.group,
+          group_id: cls.group,
+          class_id: cls.id_class,
+          starts_in: cls.remaining_minutes
+            ? `${cls.remaining_minutes} min`
+            : null,
+          session_id: cls.session_id || null,
+          session_status: cls.session_status || null,
+          qr_available: cls.qr_available || false,
+          id_session: cls.session_id || null,
+          check_in_time: cls.check_in_time || null,
+          can_check_in: cls.can_check_in ?? false,
+        }));
+
+        setClasses(formattedClasses);
+
+        const marked = formattedClasses
+          .filter((cls) => cls.check_in_time)
+          .map((cls) => cls.session_id)
+          .filter(Boolean);
+        setMarkedSessions(marked);
+      } else {
+        setError("No se pudieron cargar las clases");
+      }
+
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setError("Error de conexión con el servidor");
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchProfile = async () => {
       try {
-        // 🔥 ENDPOINT NUEVO PARA ESTUDIANTES
-        const [classesResponse, profileResponse] = await Promise.all([
-          api.get("/student/classes/today"),
-          api.get("/profile/me"),
-        ]);
-
-        // CLASES
-        if (classesResponse.status === 200) {
-          const classesData = classesResponse.data;
-
-          setSessionDate(classesData.date || "");
-
-          const formattedClasses = classesData.classes.map((cls) => ({
-            status: cls.status
-              ? String(cls.status).toLowerCase()
-              : null,
-
-            start_time: cls.start_time || null,
-            end_time: cls.end_time || null,
-
-            career: cls.course,
-            career_id: cls.course,
-
-            subject: cls.subject,
-            subject_id: cls.id_class,
-
-            time: `${cls.start_time} - ${cls.end_time}`,
-
-            group: cls.group,
-            group_id: cls.group,
-
-            class_id: cls.id_class,
-
-            starts_in: cls.remaining_minutes
-              ? `${cls.remaining_minutes} min`
-              : null,
-
-            // 🔥 INFO DE SESIÓN
-            session_id: cls.session_id || null,
-            session_status: cls.session_status || null,
-
-            // 🔥 QR DISPONIBLE
-            qr_available: cls.qr_available || false,
-          }));
-
-          setClasses(formattedClasses);
-        } else {
-          setError("No se pudieron cargar las clases");
-        }
-
-        // PERFIL
+        const profileResponse = await api.get("/profile/me");
         if (profileResponse.status === 200) {
           setProfile(profileResponse.data);
         }
-
-        setLoading(false);
       } catch (err) {
         console.error(err);
-        setError("Error de conexión con el servidor");
-        setLoading(false);
       }
     };
 
+    fetchProfile();
     fetchData();
+
+    const interval = setInterval(fetchData, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const getRoleLabel = (role) => {
@@ -85,61 +94,49 @@ const StudentDashboard = ({ userRole = "student", onLogout }) => {
       STUDENT: "Estudiante",
       ADMIN: "Administrador",
     };
-
     return roles[role] || role;
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#08060d] flex items-center justify-center">
-        <p className="text-white text-xl animate-pulse">
-          Cargando...
-        </p>
+        <p className="text-white text-xl animate-pulse">Cargando...</p>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen w-full bg-[#08060d] bg-gradient-to-br from-blue-900/10 via-transparent to-purple-900/5 text-white p-4 md:p-10 font-sans">
-      {/* HEADER */}
       <header className="flex items-center justify-between pb-8 border-b border-gray-800 mb-10">
         <div>
           <h1 className="text-4xl font-extrabold tracking-tight">
             Catsi<span className="text-blue-500">Vard</span>
           </h1>
-
           <p className="text-gray-400 mt-1">
             Gestión Académica • Panel del{" "}
             {getRoleLabel(profile?.role || userRole)}
           </p>
         </div>
-
         <div className="flex items-center gap-4">
           <UserAvatar onLogout={onLogout} />
         </div>
       </header>
 
       <main>
-        {/* BANNER */}
         <div className="mb-10 p-6 bg-blue-950/20 border border-blue-900 rounded-2xl flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h2 className="text-2xl font-bold">
-              Tus Clases
-            </h2>
-
+            <h2 className="text-2xl font-bold">Tus Clases</h2>
             <p className="text-blue-300 text-sm mt-1">
               {classes.length > 0
                 ? `Tienes ${classes.length} clases programadas hoy.`
                 : "No hay clases programadas por ahora."}
             </p>
           </div>
-
           {sessionDate && (
             <div className="text-right">
               <p className="text-[10px] text-blue-300/70 uppercase tracking-widest font-bold">
                 Fecha
               </p>
-
               <p className="text-sm font-semibold text-gray-200 capitalize">
                 {new Date(sessionDate).toLocaleDateString("es-ES", {
                   weekday: "long",
@@ -152,15 +149,16 @@ const StudentDashboard = ({ userRole = "student", onLogout }) => {
           )}
         </div>
 
-        {/* CARDS */}
         {error ? (
           <div className="p-10 bg-red-500/10 border border-red-500/20 rounded-2xl text-center">
-            <p className="text-red-400">
-              {error}
-            </p>
+            <p className="text-red-400">{error}</p>
           </div>
         ) : (
-          <StudentSessionCards classes={classes} />
+          <StudentSessionCards
+            classes={classes}
+            markedSessions={markedSessions}
+            onCheckInSuccess={handleCheckInSuccess}
+          />
         )}
       </main>
 

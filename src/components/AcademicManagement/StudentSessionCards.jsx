@@ -1,11 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
+import { checkIn } from "../../services/attendanceService";
 
-const StudentSessionCards = ({ classes = [] }) => {
+const StudentSessionCards = ({ classes = [], markedSessions = [], onCheckInSuccess }) => {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
   const [scannedResult, setScannedResult] = useState("");
   const [cameraError, setCameraError] = useState("");
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [checkInStatus, setCheckInStatus] = useState(null); // 'success' | 'error' | null
+  const [checkInMessage, setCheckInMessage] = useState("");
 
   const scannerRef = useRef(null);
 
@@ -124,12 +128,50 @@ const StudentSessionCards = ({ classes = [] }) => {
     return null;
   };
 
+  // VERIFICAR SI YA ESTÁ MARCADA
+  const isMarked = (clase) => {
+    return markedSessions.includes(clase.id_session) || markedSessions.includes(clase.session_id);
+  };
+
+  // OBTENER TEXTO DEL BOTÓN
+  const getButtonText = (clase) => {
+    if (isMarked(clase)) {
+      return "Asistencia Registrada";
+    }
+
+    if (isMarked(clase)) return "Asistencia Registrada";
+
+    if (!isMarked(clase) && !clase.can_check_in) {
+      return "Sesión Finalizada";
+    }
+
+    return "Escanear QR";
+  };
+
+  // OBTENER CLASE DEL BOTÓN
+  const getButtonClass = (clase) => {
+    if (isMarked(clase)) {
+      return "w-full bg-indigo-600 text-white font-semibold py-3 rounded-xl transition-all cursor-default";
+    }
+
+    if (!clase.can_check_in) {
+      return "w-full bg-green-600/30 text-green-400/50 font-semibold py-3 rounded-xl transition-all cursor-not-allowed";
+    }
+
+    return "w-full bg-green-600 hover:bg-green-500 text-white font-semibold py-3 rounded-xl transition-all";
+  };
+
   // ABRIR SCANNER
   const handleOpenScanner = async (clase) => {
+    if (isMarked(clase)) return;
+
     setSelectedClass(clase);
     setScannerOpen(true);
     setCameraError("");
     setScannedResult("");
+    setCheckInStatus(null);
+    setCheckInMessage("");
+    setIsCheckingIn(false);
 
     setTimeout(async () => {
       try {
@@ -149,14 +191,57 @@ const StudentSessionCards = ({ classes = [] }) => {
             console.log("QR ESCANEADO:", decodedText);
 
             setScannedResult(decodedText);
+            setIsCheckingIn(true);
 
             await html5QrCode.stop();
             await html5QrCode.clear();
 
-            setScannerOpen(false);
+            // LLAMAR AL ENDPOINT DE CHECK-IN
+            try {
+              const result = await checkIn(decodedText);
 
-            // AQUÍ DESPUÉS VA EL ENDPOINT
-            // PARA REGISTRAR ASISTENCIA
+              setCheckInStatus("success");
+              setCheckInMessage(
+                result?.message || "¡Asistencia registrada exitosamente!"
+              );
+
+              // Notificar al padre para actualizar estado
+              if (onCheckInSuccess) {
+                onCheckInSuccess(selectedClass?.session_id || selectedClass?.id_session);
+              }
+
+              // Cerrar modal después de 2 segundos
+              setTimeout(() => {
+                setScannerOpen(false);
+              }, 2000);
+            } catch (error) {
+              const data = error?.response?.data;
+              const detail = data?.detail;
+              const errorMsg =
+                (typeof detail === "string" && detail) ||
+                detail?.message ||
+                data?.message ||
+                data?.error ||
+                error?.message ||
+                "No se pudo registrar la asistencia. Intenta de nuevo.";
+
+              console.error("Check-in error:", {
+                status: error?.response?.status,
+                data,
+                qrToken: decodedText,
+              });
+
+              setCheckInStatus("error");
+              setCheckInMessage(errorMsg);
+
+              // Permitir reintentar después de 3 segundos
+              setTimeout(() => {
+                setIsCheckingIn(false);
+                setScannedResult("");
+                setCheckInStatus(null);
+                setCheckInMessage("");
+              }, 3000);
+            }
           },
           () => {}
         );
@@ -200,6 +285,7 @@ const StudentSessionCards = ({ classes = [] }) => {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {classes.map((clase, index) => {
         const badge = getBadgeInfo(clase);
+        const marked = isMarked(clase);
 
         return (
           <div
@@ -223,6 +309,12 @@ const StudentSessionCards = ({ classes = [] }) => {
               {clase.group && (
                 <span className="text-xs font-semibold text-gray-400 px-2 py-0.5 bg-white/5 border border-white/10 rounded-md">
                   {clase.group}
+                </span>
+              )}
+
+              {marked && (
+                <span className="text-xs font-semibold text-indigo-400 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-md">
+                  Registrada
                 </span>
               )}
             </div>
@@ -268,16 +360,25 @@ const StudentSessionCards = ({ classes = [] }) => {
                 </div>
               </div>
 
+              {/* CHECK IN INFO */}
+              {marked && clase.check_in_time && (
+                <div className="bg-indigo-500/10 p-3 rounded-xl border border-indigo-500/20">
+                  <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">
+                    Registrado a las
+                  </p>
+                  <p className="text-sm font-semibold text-indigo-300 mt-0.5">
+                    {formatTime12h(clase.check_in_time)}
+                  </p>
+                </div>
+              )}
+
               {/* BOTÓN */}
               <button
                 onClick={() => handleOpenScanner(clase)}
-                disabled={
-                  clase.status?.toLowerCase() === "past" ||
-                  !clase.qr_available
-                }
-                className="w-full bg-green-600 hover:bg-green-500 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                disabled={!clase.can_check_in}
+                className={getButtonClass(clase)}
               >
-                Escanear QR
+                {getButtonText(clase)}
               </button>
             </div>
           </div>
@@ -308,20 +409,87 @@ const StudentSessionCards = ({ classes = [] }) => {
             </div>
 
             {/* CAMARA */}
-            <div
-              id="reader"
-              className="overflow-hidden rounded-2xl"
-            />
+            {!checkInStatus && (
+              <div
+                id="reader"
+                className="overflow-hidden rounded-2xl"
+              />
+            )}
+
+            {/* CARGANDO */}
+            {isCheckingIn && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-10 h-10 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin mb-4" />
+                <p className="text-gray-400 text-sm">Registrando asistencia...</p>
+              </div>
+            )}
+
+            {/* ÉXITO */}
+            {checkInStatus === "success" && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
+                  <svg
+                    className="w-8 h-8 text-green-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <p className="text-green-400 font-semibold text-lg">
+                  ¡Asistencia Registrada!
+                </p>
+                <p className="text-gray-400 text-sm mt-1 text-center">
+                  {checkInMessage}
+                </p>
+              </div>
+            )}
 
             {/* ERROR */}
+            {checkInStatus === "error" && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4">
+                  <svg
+                    className="w-8 h-8 text-red-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </div>
+                <p className="text-red-400 font-semibold text-lg">
+                  Error
+                </p>
+                <p className="text-gray-400 text-sm mt-1 text-center">
+                  {checkInMessage}
+                </p>
+                <p className="text-gray-500 text-xs mt-3">
+                  Preparando para reintentar...
+                </p>
+              </div>
+            )}
+
+            {/* CAMERA ERROR */}
             {cameraError && (
               <div className="mt-4 bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-sm">
                 {cameraError}
               </div>
             )}
 
-            {/* RESULTADO */}
-            {scannedResult && (
+            {/* RESULTADO DEBUG */}
+            {scannedResult && !checkInStatus && !isCheckingIn && (
               <div className="mt-4 bg-green-500/10 border border-green-500/20 text-green-400 p-3 rounded-xl text-sm break-all">
                 QR detectado:
                 <br />
