@@ -5,6 +5,7 @@ import {
   activateSession,
   getSessionAttendance,
   finishSession,
+  extendSession,
 } from "../../services/sessionService";
 
 const SessionCards = ({ classes = [] }) => {
@@ -16,30 +17,32 @@ const SessionCards = ({ classes = [] }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [finishedSessions, setFinishedSessions] = useState({});
-  const [summaries, setSummaries] = useState({}); // {[session_id]: {present, late, total_enrolled}}
+  const [extendedSessions, setExtendedSessions] = useState({});
+  const [summaries, setSummaries] = useState({});
+  const [remainingTime, setRemainingTime] = useState("--:--");
 
-  // Fetch attendance summary for finished sessions (cached)
+  const pollingRef = useRef(null);
+  const dragging = useRef(false);
+  const offset = useRef({ x: 0, y: 0 });
+  const timerRef = useRef(null);
+  const qrExpiresRef = useRef(null);
+
   const fetchSummary = useCallback(async (sessionId) => {
     try {
       const data = await getSessionAttendance(sessionId);
-      setSummaries(prev => ({
+      setSummaries((prev) => ({
         ...prev,
         [sessionId]: {
           present: data.present || 0,
           late: data.late || 0,
-          total_enrolled: data.total_enrolled || 0
-        }
+          total_enrolled: data.total_enrolled || 0,
+        },
       }));
     } catch (err) {
-      console.error('Error fetching summary:', err);
+      console.error("Error fetching summary:", err);
     }
   }, []);
 
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
-  const pollingRef = useRef(null);
-
-  // Convertir hora 24h a 12h con AM/PM
   const formatTime12h = (time24) => {
     if (!time24) return "";
     const [hours, minutes] = time24.split(":");
@@ -49,7 +52,6 @@ const SessionCards = ({ classes = [] }) => {
     return `${hour12}:${minutes} ${ampm}`;
   };
 
-  // Construye un Date de hoy a partir de "HH:MM"
   const buildTodayAt = (timeStr) => {
     if (!timeStr) return null;
     const [h, m] = timeStr.split(":").map(Number);
@@ -59,7 +61,6 @@ const SessionCards = ({ classes = [] }) => {
     return d;
   };
 
-  // Determina label/color del badge según status temporal + horario
   const getBadgeInfo = (clase) => {
     const status = clase.status;
     if (status === "past") {
@@ -73,12 +74,8 @@ const SessionCards = ({ classes = [] }) => {
       const start = buildTodayAt(clase.start_time);
       const end = buildTodayAt(clase.end_time);
       if (start && end) {
-        if (now > end) {
-          return { label: "Finalizada", dot: "bg-gray-500", pulse: false };
-        }
-        if (now < start) {
-          return { label: "Activa", dot: "bg-blue-500", pulse: false };
-        }
+        if (now > end) return { label: "Finalizada", dot: "bg-gray-500", pulse: false };
+        if (now < start) return { label: "Activa", dot: "bg-blue-500", pulse: false };
         return { label: "En proceso", dot: "bg-green-500", pulse: true };
       }
       return { label: "Activa", dot: "bg-blue-500", pulse: false };
@@ -86,7 +83,6 @@ const SessionCards = ({ classes = [] }) => {
     return { label: "Pendiente", dot: "bg-orange-500", pulse: false };
   };
 
-  // Indica si la clase aún no comenzó (para deshabilitar "Iniciar asistencia")
   const hasNotStarted = (clase) => {
     if (clase.status !== "active") return clase.status === "future";
     const start = buildTodayAt(clase.start_time);
@@ -94,7 +90,6 @@ const SessionCards = ({ classes = [] }) => {
     return new Date() < start;
   };
 
-  // Texto contextual de countdown según estado temporal
   const getCountdown = (clase) => {
     if (clase.status === "future" && clase.starts_in) {
       return `Empieza en ${clase.starts_in}`;
@@ -109,14 +104,6 @@ const SessionCards = ({ classes = [] }) => {
     return null;
   };
 
-  useEffect(() => {
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-      }
-    };
-  }, []);
-
   const fetchAttendance = useCallback(async (sessionId) => {
     try {
       const data = await getSessionAttendance(sessionId);
@@ -128,9 +115,7 @@ const SessionCards = ({ classes = [] }) => {
 
   const startPolling = useCallback(
     (sessionId) => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-      }
+      if (pollingRef.current) clearInterval(pollingRef.current);
       fetchAttendance(sessionId);
       pollingRef.current = setInterval(() => {
         fetchAttendance(sessionId);
@@ -146,10 +131,16 @@ const SessionCards = ({ classes = [] }) => {
     }
   }, []);
 
+  const stopTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
   const handleStartSession = async (clase) => {
     setLoading(true);
     setError(null);
-
     try {
       let sessionId = clase.session_id;
       if (!sessionId) {
@@ -164,11 +155,11 @@ const SessionCards = ({ classes = [] }) => {
           }
         }
       }
-
       if (sessionId) {
         const activated = await activateSession(sessionId, 10);
         setSessionData(activated);
         setActiveSession(clase.class_id);
+        setIsMinimized(false);
         startPolling(sessionId);
       }
     } catch (err) {
@@ -188,10 +179,8 @@ const SessionCards = ({ classes = [] }) => {
       setError("No hay sesión activa para reanudar");
       return;
     }
-
     setLoading(true);
     setError(null);
-
     try {
       const activated = await activateSession(clase.session_id, 10);
       setSessionData(activated);
@@ -206,32 +195,37 @@ const SessionCards = ({ classes = [] }) => {
     }
   };
 
-const handleExtend = async (clase) => {
+  const handleExtend = async (clase) => {
     const sessionId = clase.session_id || finishedSessions[clase.class_id];
     if (!sessionId) {
       setError("No hay sesión");
       return;
     }
-
     setLoading(true);
     setError(null);
-
     try {
-      const activated = await activateSession(sessionId, 10);
-      setSessionData(activated);
+      const extended = await extendSession(sessionId);
+      setSessionData({
+        ...(sessionData || {}),
+        id_session: extended.id_session,
+        id_class: clase.class_id,
+        qr_token: extended.qr_token ?? sessionData?.qr_token,
+        qr_expires: extended.qr_expires,
+        extended_mode: extended.extended_mode,
+        status: "ACTIVE",
+      });
       setActiveSession(clase.class_id);
       setIsMinimized(false);
-      // Limpiar de finishedSessions
       setFinishedSessions((prev) => {
         const newState = { ...prev };
         delete newState[clase.class_id];
         return newState;
       });
+      setExtendedSessions((prev) => ({ ...prev, [clase.class_id]: sessionId }));
       startPolling(sessionId);
-      // Fetch attendance after activating
       fetchSummary(sessionId);
     } catch (err) {
-      setError(err.response?.data?.message || "Error");
+      setError(err.response?.data?.detail || err.response?.data?.message || "Error");
     } finally {
       setLoading(false);
     }
@@ -243,15 +237,22 @@ const handleExtend = async (clase) => {
     try {
       await finishSession(sessionData.id_session);
       stopPolling();
-      // Trackear sesión finalizada
+      stopTimer();
       setFinishedSessions((prev) => ({
         ...prev,
         [activeSession]: sessionData.id_session,
       }));
+      setExtendedSessions((prev) => {
+        const newState = { ...prev };
+        delete newState[activeSession];
+        return newState;
+      });
+      fetchSummary(sessionData.id_session);
       setSessionData(null);
       setAttendance(null);
       setIsMinimized(true);
       setActiveSession(null);
+      setRemainingTime("--:--");
     } catch (err) {
       setError(err.response?.data?.message || "Error al finalizar");
     } finally {
@@ -259,33 +260,49 @@ const handleExtend = async (clase) => {
     }
   };
 
-  const [remainingTime, setRemainingTime] = useState("--:--");
-
+  // Sync timer when sessionData changes
   useEffect(() => {
-    const qrExpires = sessionData?.qr_expires;
-    if (!qrExpires) return;
+    stopTimer();
+    qrExpiresRef.current = null;
 
-    const computeRemaining = () => {
-      const diff = new Date(qrExpires) - new Date();
-      if (diff <= 0) return "00:00";
+    if (!sessionData?.qr_expires) {
+      setRemainingTime("--:--");
+      return;
+    }
+
+    qrExpiresRef.current = sessionData.qr_expires;
+
+    const tick = () => {
+      if (!qrExpiresRef.current) return;
+      const diff = new Date(qrExpiresRef.current) - new Date();
+      if (diff <= 0) {
+        setRemainingTime("00:00");
+        stopTimer();
+        handleFinish();
+        return;
+      }
       const minutes = Math.floor(diff / 60000);
       const seconds = Math.floor((diff % 60000) / 1000);
-      return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+      setRemainingTime(
+        `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`,
+      );
     };
 
-    const interval = setInterval(() => {
-      setRemainingTime(computeRemaining());
-    }, 1000);
-    return () => clearInterval(interval);
+    tick();
+    timerRef.current = setInterval(tick, 1000);
   }, [sessionData?.qr_expires]);
+
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   const handleMouseDown = (e) => {
     if (e.button !== 0) return;
     dragging.current = true;
-    offset.current = {
-      x: e.clientX - modalPos.x,
-      y: e.clientY - modalPos.y,
-    };
+    offset.current = { x: e.clientX - modalPos.x, y: e.clientY - modalPos.y };
   };
 
   const handleMouseMove = (e) => {
@@ -315,6 +332,14 @@ const handleExtend = async (clase) => {
     >
       {classes.map((clase, index) => {
         const badge = getBadgeInfo(clase);
+        const sessionId =
+          clase.session_id ||
+          finishedSessions[clase.class_id] ||
+          extendedSessions[clase.class_id];
+        const summary = summaries[sessionId];
+        const isExtended = !!extendedSessions[clase.class_id];
+        const isFinished = !!finishedSessions[clase.class_id];
+
         return (
           <div
             key={index}
@@ -326,16 +351,12 @@ const handleExtend = async (clase) => {
                   : "border-white/10 hover:border-white/25 hover:shadow-lg hover:shadow-black/30 hover:-translate-y-0.5"
             } rounded-2xl p-6 transition-all duration-300`}
           >
-            {/* Header: badge inline + group chip */}
             <div className="flex items-center justify-between gap-3 mb-4">
-              <div
-                role="status"
-                aria-label={`Estado de la clase: ${badge.label}`}
-                className="flex items-center gap-2 px-2.5 py-1 bg-white/5 rounded-full border border-white/10"
-              >
+              <div className="flex items-center gap-2 px-2.5 py-1 bg-white/5 rounded-full border border-white/10">
                 <span
-                  aria-hidden="true"
-                  className={`h-2 w-2 rounded-full ${badge.dot} ${badge.pulse ? "animate-pulse" : ""}`}
+                  className={`h-2 w-2 rounded-full ${badge.dot} ${
+                    badge.pulse ? "animate-pulse" : ""
+                  }`}
                 />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-gray-300">
                   {badge.label}
@@ -367,7 +388,9 @@ const handleExtend = async (clase) => {
                   </p>
                   <p className="text-sm font-semibold text-gray-200 truncate">
                     {clase.start_time && clase.end_time
-                      ? `${formatTime12h(clase.start_time)} – ${formatTime12h(clase.end_time)}`
+                      ? `${formatTime12h(clase.start_time)} – ${formatTime12h(
+                          clase.end_time,
+                        )}`
                       : clase.time
                         ? formatTime12h(clase.time.split(" - ")[0])
                         : "—"}
@@ -379,23 +402,22 @@ const handleExtend = async (clase) => {
                   )}
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-                    {activeSession === clase.class_id
-                      ? "Tiempo restante"
-                      : clase.session_status === "FINISHED" || finishedSessions[clase.class_id]
-                        ? "Asistencia"
-                        : "Sesión"}
-                  </p>
-                  {clase.session_status === "FINISHED" || finishedSessions[clase.class_id] ? (
-                    // Mini-stat for finished sessions
-                    (() => {
-                      const sessionId = clase.session_id || finishedSessions[clase.class_id];
-                      const summary = summaries[sessionId];
-                      if (!summary) return (
-                        <p className="text-lg font-mono font-bold text-gray-500">—</p>
-                      );
-                      return (
-                        <div className="text-right">
+                  {activeSession === clase.class_id ? (
+                    <>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                        Tiempo restante
+                      </p>
+                      <p className="text-lg font-mono font-bold text-blue-400">
+                        {remainingTime}
+                      </p>
+                    </>
+                  ) : isFinished && !isExtended ? (
+                    <>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                        Asistencia
+                      </p>
+                      {summary ? (
+                        <div>
                           <p className="text-lg font-mono font-bold text-green-400">
                             {summary.present}/{summary.total_enrolled}
                           </p>
@@ -405,12 +427,21 @@ const handleExtend = async (clase) => {
                             </p>
                           )}
                         </div>
-                      );
-                    })()
+                      ) : (
+                        <p className="text-lg font-mono font-bold text-gray-500">
+                          —
+                        </p>
+                      )}
+                    </>
                   ) : (
-                    <p className="text-lg font-mono font-bold text-blue-400">
-                      {activeSession === clase.class_id ? remainingTime : "--:--"}
-                    </p>
+                    <>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                        Sesión
+                      </p>
+                      <p className="text-lg font-mono font-bold text-gray-500">
+                        --:--
+                      </p>
+                    </>
                   )}
                 </div>
               </div>
@@ -419,7 +450,6 @@ const handleExtend = async (clase) => {
                 {activeSession === clase.class_id ? (
                   <button
                     onClick={() => setIsMinimized(false)}
-                    aria-label="Volver a la sesión activa"
                     className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98]"
                   >
                     <svg
@@ -429,18 +459,15 @@ const handleExtend = async (clase) => {
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2.2"
-                      aria-hidden="true"
                     >
                       <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
                     </svg>
                     Volver a la sesión
                   </button>
-                ) : clase.session_status === "FINISHED" ||
-                  finishedSessions[clase.class_id] ? (
+                ) : isFinished && !isExtended ? (
                   <button
                     onClick={() => handleExtend(clase)}
                     disabled={loading}
-                    aria-label="Activar modo extendido"
                     className="w-full flex items-center justify-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50 active:scale-[0.98]"
                   >
                     <svg
@@ -450,18 +477,35 @@ const handleExtend = async (clase) => {
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2.2"
-                      aria-hidden="true"
                     >
                       <circle cx="12" cy="12" r="9" />
                       <path d="M12 7v5l3 2" />
                     </svg>
                     {loading ? "Procesando..." : "Modo extendido"}
                   </button>
+                ) : isExtended ? (
+                  <button
+                    onClick={handleFinish}
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-2 bg-red-600/80 hover:bg-red-500 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50 active:scale-[0.98]"
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                    >
+                      <rect x="6" y="4" width="4" height="16" />
+                      <rect x="14" y="4" width="4" height="16" />
+                    </svg>
+                    {loading ? "..." : "Finalizar extendido"}
+                  </button>
                 ) : clase.session_status === "ACTIVE" ? (
                   <button
                     onClick={() => handleResume(clase)}
                     disabled={loading}
-                    aria-label="Reanudar sesión activa"
                     className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 active:scale-[0.98]"
                   >
                     {loading ? "..." : "Reanudar sesión"}
@@ -474,7 +518,6 @@ const handleExtend = async (clase) => {
                       hasNotStarted(clase) ||
                       clase.status === "past"
                     }
-                    aria-label="Iniciar asistencia"
                     className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none active:scale-[0.98]"
                     title={
                       hasNotStarted(clase)
@@ -494,7 +537,6 @@ const handleExtend = async (clase) => {
               <div
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby={`session-title-${clase.class_id}`}
                 style={{
                   left: `calc(50% + ${modalPos.x}px)`,
                   top: `calc(50% + ${modalPos.y}px)`,
@@ -505,10 +547,7 @@ const handleExtend = async (clase) => {
               >
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h3
-                      id={`session-title-${clase.class_id}`}
-                      className="text-xl font-bold text-white"
-                    >
+                    <h3 className="text-xl font-bold text-white">
                       Gestión: {clase.subject}
                     </h3>
                     <p className="text-[10px] text-gray-500 font-mono">
@@ -517,7 +556,6 @@ const handleExtend = async (clase) => {
                   </div>
                   <button
                     onClick={() => setIsMinimized(true)}
-                    aria-label="Minimizar panel de sesión"
                     className="p-2 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors"
                   >
                     <svg
@@ -541,11 +579,7 @@ const handleExtend = async (clase) => {
 
                 {sessionData?.qr_token && (
                   <div className="bg-white p-6 rounded-[2rem] flex justify-center mb-8">
-                    <QRCodeSVG
-                      value={sessionData.qr_token}
-                      size={220}
-                      level="M"
-                    />
+                    <QRCodeSVG value={sessionData.qr_token} size={220} level="M" />
                   </div>
                 )}
 
@@ -556,9 +590,7 @@ const handleExtend = async (clase) => {
                         Presentes
                       </p>
                       <p className="text-sm font-bold text-white">
-                        <span className="text-green-400 text-lg">
-                          {present}
-                        </span>{" "}
+                        <span className="text-green-400 text-lg">{present}</span>{" "}
                         / {totalEnrolled}
                       </p>
                     </div>
