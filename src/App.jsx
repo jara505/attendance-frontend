@@ -5,6 +5,7 @@ import { ProtectedRoute } from './routes/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
+import AttendanceHistory from './components/AcademicManagement/AttendanceHistory.jsx';
 
 function App() {
   return (
@@ -12,6 +13,17 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          
+          {/* Ahora que está importado, ya no dará error aquí */}
+          <Route 
+            path="/asistencias" 
+            element={
+              <ProtectedRoute>
+                <AttendanceHistory />
+              </ProtectedRoute>
+            } 
+          />
+
           <Route 
             path="/dashboard" 
             element={
@@ -20,6 +32,7 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          
           <Route 
             path="/change-password" 
             element={
@@ -28,6 +41,7 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
