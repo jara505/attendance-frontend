@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 // IMPORTANTE: Asegúrate de tener instalada la librería react-router-dom
-import { useNavigate } from 'react-router-dom'; 
-import { getProfile, updateProfilePhoto } from '../../services/profileService';
+import { useNavigate } from "react-router-dom";
+import { getProfile, updateProfilePhoto } from "../../services/profileService";
 
 const UserAvatar = ({ onLogout }) => {
   const navigate = useNavigate(); // Esto causará error si no se importa arriba
@@ -18,7 +18,7 @@ const UserAvatar = ({ onLogout }) => {
         const data = await getProfile();
         setProfile(data);
       } catch (err) {
-        console.error('Error fetching profile:', err);
+        console.error("Error fetching profile:", err);
       } finally {
         setLoading(false);
       }
@@ -39,7 +39,7 @@ const UserAvatar = ({ onLogout }) => {
       const data = await getProfile();
       setProfile(data);
     } catch {
-      setError('Error al subir la imagen');
+      setError("Error al subir la imagen");
     } finally {
       setUploading(false);
     }
@@ -72,7 +72,10 @@ const UserAvatar = ({ onLogout }) => {
             ) : profile ? (
               <>
                 <div className="flex flex-col items-center mb-4 text-center">
-                  <div className="relative group cursor-pointer mb-2" onClick={handlePhotoClick}>
+                  <div
+                    className="relative group cursor-pointer mb-2"
+                    onClick={handlePhotoClick}
+                  >
                     <div className="h-16 w-16 rounded-2xl overflow-hidden border border-white/10">
                       {profile.profile_photo ? (
                         <img
@@ -86,17 +89,27 @@ const UserAvatar = ({ onLogout }) => {
                         </div>
                       )}
                     </div>
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      className="hidden"
+                      accept="image/*"
+                    />
                     <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                      <span className="text-[10px] text-white font-bold uppercase">Cambiar</span>
+                      <span className="text-[10px] text-white font-bold uppercase">
+                        Cambiar
+                      </span>
                     </div>
                   </div>
-                  
+
                   <p className="text-white font-bold text-sm leading-tight">
                     {profile.first_name} {profile.last_name}
                   </p>
                   <p className="text-gray-500 text-[10px] uppercase font-black tracking-widest mt-1">
-                    {profile.role === 'STUDENT' ? `ID: ${profile.student_card}` : profile.email}
+                    {profile.role === "STUDENT"
+                      ? `Carnet: ${profile.student_card}`
+                      : profile.email}
                   </p>
                   {uploading && (
                     <p className="text-blue-300 text-[10px] uppercase font-black tracking-widest mt-2">
@@ -110,18 +123,21 @@ const UserAvatar = ({ onLogout }) => {
                   )}
                 </div>
 
-                <div className="space-y-1 mb-4 border-t border-white/5 pt-4">
-                  <button 
-                    onClick={() => { navigate('/asistencias'); setShowMenu(false); }}
-                    className="w-full text-left p-3 hover:bg-white/5 flex items-center gap-3 transition-all rounded-xl group"
-                  >
-                    <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 text-lg group-hover:bg-blue-500 group-hover:text-white transition-all">📅</div>
-                    <div>
-                      <p className="text-[11px] font-bold text-white group-hover:text-blue-400 transition-colors">Historial Asistencias</p>
-                      <p className="text-[9px] text-gray-600 uppercase">Panel detallado</p>
-                    </div>
-                  </button>
-                </div>
+                {profile.role === "STUDENT" && (
+                  <div className="space-y-1 mb-4 border-t border-white/5 pt-4">
+                    <button
+                      onClick={() => {
+                        navigate("/asistencias");
+                        setShowMenu(false);
+                      }}
+                      className="w-full p-3 hover:bg-white/5 flex items-center justify-center transition-all rounded-xl group"
+                    >
+                      <p className="text-[11px] font-bold text-white group-hover:text-blue-400 transition-colors text-center">
+                        Historial Asistencias
+                      </p>
+                    </button>
+                  </div>
+                )}
 
                 <button
                   onClick={onLogout}
@@ -136,7 +152,10 @@ const UserAvatar = ({ onLogout }) => {
       </div>
 
       {showMenu && (
-        <div className="fixed inset-0 z-[90]" onClick={() => setShowMenu(false)} />
+        <div
+          className="fixed inset-0 z-[90]"
+          onClick={() => setShowMenu(false)}
+        />
       )}
     </>
   );

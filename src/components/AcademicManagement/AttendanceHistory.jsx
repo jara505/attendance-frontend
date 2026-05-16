@@ -1,154 +1,212 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const AttendanceHistory = () => {
   const navigate = useNavigate();
   const [selectedSubject, setSelectedSubject] = useState(null);
 
   const subjects = [
-    { id: 1, name: "Cálculo Numérico", sessions: 18, total: 20, percentage: 90, color: "from-blue-500/20 to-cyan-400/5" },
-    { id: 2, name: "Bases de Datos I", sessions: 15, total: 15, percentage: 100, color: "from-purple-500/20 to-indigo-400/5" },
-    { id: 3, name: "Programación II", sessions: 12, total: 14, percentage: 85, color: "from-emerald-500/20 to-teal-400/5" },
-    { id: 4, name: "Inglés Técnico", sessions: 10, total: 10, percentage: 100, color: "from-orange-500/20 to-yellow-400/5" },
+    {
+      id: 1,
+      name: "Cálculo Numérico",
+      sessions: 18,
+      total: 20,
+      percentage: 90,
+    },
+    {
+      id: 2,
+      name: "Bases de Datos I",
+      sessions: 15,
+      total: 15,
+      percentage: 100,
+    },
+    { id: 3, name: "Programación II", sessions: 12, total: 14, percentage: 85 },
+    { id: 4, name: "Inglés Técnico", sessions: 10, total: 10, percentage: 100 },
   ];
 
   const calendarDays = Array.from({ length: 31 }, (_, i) => {
-    const statuses = ['present', 'absent', 'late', 'none'];
-    const randomStatus = i > 25 ? 'none' : statuses[i % 3];
+    const statuses = ["present", "absent", "late", "none"];
+    const randomStatus = i > 25 ? "none" : statuses[i % 3];
     return { day: i + 1, status: randomStatus };
   });
 
-  // Vista Detallada (Calendario)
+  // VISTA DETALLADA (Calendario)
   if (selectedSubject) {
     return (
-      <div className="min-h-screen bg-[#08060d] text-white p-6 pt-28 animate-in fade-in zoom-in duration-300">
-        <div className="max-w-4xl mx-auto">
-          <header className="flex justify-between items-center mb-10">
-            {/* Botón Volver (Estilo Neón Pulido) */}
-            <button 
-              onClick={() => setSelectedSubject(null)} 
-              className="px-6 py-2 border border-blue-500/50 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-blue-300 hover:bg-blue-500/10 transition-all shadow-[0_0_15px_rgba(59,130,246,0.1)]"
-            >
-              ❮ Volver
-            </button>
-            <div className="text-right">
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">
-                {selectedSubject.name}
-              </h2>
-              <p className="text-[10px] font-bold text-gray-600 tracking-widest uppercase">REGISTRO MENSUAL • MAYO 2026</p>
-            </div>
-          </header>
+      <div className="min-h-screen w-full bg-[#08060d] bg-gradient-to-br from-blue-900/10 via-transparent to-purple-900/5 text-white p-4 md:p-10 font-sans">
+        <header className="flex items-center justify-between pb-6 border-b border-gray-800 mb-8">
+          <button
+            onClick={() => setSelectedSubject(null)}
+            className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-gray-300 transition-all flex items-center gap-2"
+          >
+            <span>❮</span> Volver
+          </button>
+          <div className="text-right">
+            <h2 className="text-2xl font-bold text-white leading-tight">
+              {selectedSubject.name}
+            </h2>
+            <p className="text-[10px] text-blue-300/70 uppercase tracking-widest font-bold mt-1">
+              Registro mensual • Mayo 2026
+            </p>
+          </div>
+        </header>
 
-          <div className="bg-[#110f18] border border-white/5 rounded-[3rem] p-10 shadow-2xl relative overflow-hidden">
-            <div className="grid grid-cols-7 mb-8 text-center text-[10px] font-black text-gray-600 tracking-widest uppercase">
-              {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => <span key={d}>{d}</span>)}
+        <main className="max-w-3xl mx-auto">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 shadow-lg">
+            <div className="grid grid-cols-7 gap-2 mb-4 text-center">
+              {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((d) => (
+                <span
+                  key={d}
+                  className="text-[10px] font-bold uppercase tracking-widest text-gray-500"
+                >
+                  {d}
+                </span>
+              ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-3">
-              <div className="col-span-4"></div> {/* Espaciado para inicio de mes */}
+            <div className="grid grid-cols-7 gap-2">
+              <div className="col-span-4" />
               {calendarDays.map((item) => (
-                <div 
+                <div
                   key={item.day}
-                  className={`aspect-square flex flex-col items-center justify-center rounded-2xl border transition-all
-                    ${item.status === 'present' ? 'bg-green-500/5 border-green-500/20' : 
-                      item.status === 'late' ? 'bg-orange-500/5 border-orange-500/20' : 
-                      item.status === 'absent' ? 'bg-red-500/5 border-red-500/20' : 'bg-white/[0.02] border-white/5 opacity-30'}
+                  className={`aspect-square flex flex-col items-center justify-center rounded-xl border transition-all
+                    ${
+                      item.status === "present"
+                        ? "bg-green-500/5 border-green-500/20"
+                        : item.status === "late"
+                          ? "bg-orange-500/5 border-orange-500/20"
+                          : item.status === "absent"
+                            ? "bg-red-500/5 border-red-500/20"
+                            : "bg-white/[0.02] border-white/5 opacity-40"
+                    }
                   `}
                 >
-                  <span className="text-[10px] font-bold text-gray-500 mb-1">{item.day}</span>
-                  {item.status !== 'none' && (
-                    <div className={`h-1.5 w-1.5 rounded-full ${
-                      item.status === 'present' ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 
-                      item.status === 'late' ? 'bg-orange-500 shadow-[0_0_8px_#f97316]' : 'bg-red-500 shadow-[0_0_8px_#ef4444]'
-                    }`} />
+                  <span className="text-xs font-semibold text-gray-300 mb-1">
+                    {item.day}
+                  </span>
+                  {item.status !== "none" && (
+                    <div
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        item.status === "present"
+                          ? "bg-green-500"
+                          : item.status === "late"
+                            ? "bg-orange-500"
+                            : "bg-red-500"
+                      }`}
+                    />
                   )}
                 </div>
               ))}
             </div>
 
-            {/* Simbología / Leyenda del Calendario */}
-            <div className="mt-12 flex flex-wrap justify-center gap-8 border-t border-white/5 pt-8">
-              <div className="flex items-center gap-2.5">
-                <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]" />
-                <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Presente</span>
+            <div className="mt-8 flex flex-wrap justify-center gap-6 border-t border-white/5 pt-6">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">
+                  Presente
+                </span>
               </div>
-              <div className="flex items-center gap-2.5">
-                <div className="h-2 w-2 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316]" />
-                <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Tardanza</span>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-orange-500" />
+                <span className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">
+                  Tardanza
+                </span>
               </div>
-              <div className="flex items-center gap-2.5">
-                <div className="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]" />
-                <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Ausencia</span>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-red-500" />
+                <span className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">
+                  Ausencia
+                </span>
               </div>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
-  // Vista Principal (Lista de Materias)
+  // VISTA PRINCIPAL (Lista de Materias)
   return (
-    <div className="min-h-screen bg-[#08060d] text-white p-6 pt-28 animate-in fade-in duration-500">
-      <div className="max-w-6xl mx-auto">
-        
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-6">
-          {/* Logo con estilo exacto: Blanco y Azul */}
-          <h1 className="text-6xl font-extrabold tracking-tighter">
-            <span className="text-white">Catsi</span>
-            <span className="text-[#3b82f6]">Vard</span>
+    <div className="min-h-screen w-full bg-[#08060d] bg-gradient-to-br from-blue-900/10 via-transparent to-purple-900/5 text-white p-4 md:p-10 font-sans">
+      <header className="flex items-center justify-between pb-8 border-b border-gray-800 mb-10">
+        <div>
+          <h1 className="text-4xl font-extrabold tracking-tight">
+            Catsi<span className="text-blue-500">Vard</span>
           </h1>
+          <p className="text-gray-400 mt-1">Historial de Asistencias</p>
+        </div>
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-gray-300 transition-all"
+        >
+          ← Volver al Dashboard
+        </button>
+      </header>
 
-          {/* Botón Volver al Dashboard (Estilo Pulido) */}
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            className="px-8 py-3 bg-transparent border border-blue-500/50 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] text-blue-400 hover:bg-blue-500/10 hover:text-white hover:border-blue-500 hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all duration-300"
-          >
-            Volver al Dashboard
-          </button>
-        </header>
+      <main>
+        <div className="mb-10 p-6 bg-blue-950/20 border border-blue-900 rounded-2xl">
+          <h2 className="text-2xl font-bold">Materias Cursadas</h2>
+          <p className="text-blue-300 text-sm mt-1">
+            {subjects.length} materias activas en el ciclo 2026.
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {subjects.map((s) => (
-            <div 
-              key={s.id} 
-              className="group relative bg-[#11111a] border border-white/5 rounded-[2.5rem] p-10 overflow-hidden hover:border-blue-500/30 transition-all duration-500 shadow-2xl"
+            <div
+              key={s.id}
+              className="group relative bg-white/5 border border-white/10 hover:border-blue-500/50 rounded-2xl p-6 transition-all shadow-lg hover:-translate-y-1"
             >
-              {/* Reflejo neón de fondo */}
-              <div className={`absolute -right-20 -top-20 w-64 h-64 bg-gradient-to-br ${s.color} blur-3xl opacity-20`} />
+              <div className="flex items-start justify-between mb-5">
+                <div className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-full border border-white/10">
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-[9px] font-black uppercase text-gray-300">
+                    Activa
+                  </span>
+                </div>
+                <span className="text-2xl font-bold text-white">
+                  {s.percentage}
+                  <span className="text-sm text-gray-500">%</span>
+                </span>
+              </div>
 
-              <div className="relative z-10">
-                <div className="flex justify-between items-start mb-12">
-                  <div>
-                    <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white/90 group-hover:text-blue-400 transition-colors">
-                      {s.name}
-                    </h3>
-                    <p className="text-[10px] font-bold text-gray-600 tracking-[0.2em] mt-1 uppercase italic">Ciclo Académico 2026</p>
-                  </div>
-                  <span className="text-4xl font-black italic text-white/90">{s.percentage}%</span>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-xl font-bold text-blue-100 group-hover:text-blue-400 transition-colors leading-tight">
+                    {s.name}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ciclo Académico 2026
+                  </p>
                 </div>
 
-                <div className="mt-10 pt-6 border-t border-white/5 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]" />
-                    <span className="text-[9px] font-black uppercase text-gray-500 tracking-wider">Materia Activa</span>
-                  </div>
-                  <button 
-                    onClick={() => setSelectedSubject(s)}
-                    className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-white transition-all border-b border-transparent hover:border-white"
-                  >
-                    Ver Detalles →
-                  </button>
+                <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">
+                    Asistencias
+                  </p>
+                  <p className="text-sm font-semibold text-gray-200">
+                    {s.sessions} de {s.total} sesiones
+                  </p>
                 </div>
+
+                <button
+                  onClick={() => setSelectedSubject(s)}
+                  className="w-full flex items-center justify-between px-4 py-3 border-t border-white/5 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-blue-400 transition-colors group/btn"
+                >
+                  <span>Ver Calendario</span>
+                  <span className="transition-transform group-hover/btn:translate-x-1">
+                    →
+                  </span>
+                </button>
               </div>
             </div>
           ))}
         </div>
+      </main>
 
-        <p className="mt-24 text-center text-[10px] font-black uppercase text-gray-800 tracking-[1.5em] select-none">
-          CatsiVard Academic • 2026
-        </p>
-      </div>
+      <footer className="mt-20 pt-8 border-t border-gray-800 text-center text-xs text-gray-600">
+        © 2026 CatsiVard System • Student Edition
+      </footer>
     </div>
   );
 };
