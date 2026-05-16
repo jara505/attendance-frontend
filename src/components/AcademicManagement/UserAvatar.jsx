@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-// IMPORTANTE: Asegúrate de tener instalada la librería react-router-dom
 import { useNavigate } from "react-router-dom";
 import { getProfile, updateProfilePhoto } from "../../services/profileService";
 
 const UserAvatar = ({ onLogout }) => {
-  const navigate = useNavigate(); // Esto causará error si no se importa arriba
+  const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -127,13 +126,13 @@ const UserAvatar = ({ onLogout }) => {
                   <div className="space-y-1 mb-4 border-t border-white/5 pt-4">
                     <button
                       onClick={() => {
-                        navigate("/asistencias");
                         setShowMenu(false);
+                        navigate("/asistencias");
                       }}
                       className="w-full p-3 hover:bg-white/5 flex items-center justify-center transition-all rounded-xl group"
                     >
                       <p className="text-[11px] font-bold text-white group-hover:text-blue-400 transition-colors text-center">
-                        Historial Asistencias
+                        Mi Asistencia
                       </p>
                     </button>
                   </div>

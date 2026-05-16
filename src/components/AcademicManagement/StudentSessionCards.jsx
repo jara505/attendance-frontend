@@ -4,135 +4,6 @@ import { checkIn } from "../../services/attendanceService";
 
 // SUBMÓDULO INTERNO: CALENDARIO DE ASISTENCIA
 
-const AttendanceCalendarModal = ({ isOpen, onClose, subjectName }) => {
-  if (!isOpen) return null;
-
-  const daysOfWeek = ["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"];
-
-  // Datos estáticos para representar el calendario de Mayo 2026 (Referencia image_bf4c65.jpg)
-  const calendarDays = [
-    { type: "empty" },
-    { type: "empty" },
-    { type: "empty" },
-    { type: "empty" },
-    { day: 1, status: "p" },
-    { day: 2, status: "p" },
-    { day: 3, status: "t" },
-    { day: 4, status: "p" },
-    { day: 5, status: "p" },
-    { day: 6, status: "p" },
-    { day: 7, status: "p" },
-    { day: 8, status: "a" },
-    { day: 9, status: "p" },
-    { day: 10, status: "p" },
-    { day: 11, status: "p" },
-    { day: 12, status: "p" },
-    { day: 13, status: "p" },
-    { day: 14, status: "p" },
-    { day: 15, status: "p" },
-    { day: 16, status: "p" },
-    { day: 17, status: "p" },
-    { day: 18, status: "p" },
-    { day: 19, status: "p" },
-    { day: 20, status: "p" },
-    { day: 21, status: "sc" },
-    { day: 22, status: "sc" },
-    { day: 23, status: "p" },
-  ];
-
-  const renderStatus = (status) => {
-    if (status === "p")
-      return <span className="text-green-500 font-bold text-lg">✓</span>;
-    if (status === "t")
-      return <span className="text-yellow-500 font-bold text-lg">◔</span>;
-    if (status === "a")
-      return <span className="text-red-500 font-bold text-lg">✕</span>;
-    if (status === "sc")
-      return <span className="text-gray-600 font-bold text-lg">—</span>;
-    return null;
-  };
-
-  return (
-    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-      <div className="w-full max-w-md bg-[#0d0b14] border border-white/10 rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-        <div className="p-6 pb-2 flex justify-between items-center">
-          <button
-            onClick={onClose}
-            className="bg-white/5 hover:bg-white/10 text-gray-300 text-xs px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
-          >
-            <span>❮</span> Volver
-          </button>
-          <div className="text-right">
-            <h2 className="text-lg font-bold text-white leading-tight">
-              {subjectName || "Materia"}
-            </h2>
-            <p className="text-[10px] text-blue-400 uppercase font-black tracking-widest">
-              Mayo 2026
-            </p>
-          </div>
-        </div>
-
-        <div className="p-6">
-          <div className="bg-[#13111a] border border-white/5 rounded-2xl p-4 shadow-inner">
-            <div className="grid grid-cols-7 gap-1 mb-4 border-b border-white/5 pb-2">
-              {daysOfWeek.map((d) => (
-                <span
-                  key={d}
-                  className="text-[9px] text-center font-bold text-gray-500 uppercase tracking-tighter"
-                >
-                  {d}
-                </span>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-y-4">
-              {calendarDays.map((item, i) => (
-                <div
-                  key={i}
-                  className="flex flex-col items-center justify-center min-h-[40px]"
-                >
-                  {item.type !== "empty" && (
-                    <>
-                      <span className="text-[10px] font-medium text-gray-400 mb-1">
-                        {item.day.toString().padStart(2, "0")}
-                      </span>
-                      <div className="h-4 flex items-center">
-                        {renderStatus(item.status)}
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-              <div className="col-span-2 flex items-center pl-2">
-                <span className="text-[9px] text-gray-600 italic font-medium">
-                  (Sin clase)
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-center gap-4 mt-6 text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
-            <div className="flex items-center gap-1">
-              <span className="text-green-500 text-sm">✓</span> Presente
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-yellow-500 text-sm">◔</span> Tardanza
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-red-500 text-sm">✕</span> Ausencia
-            </div>
-          </div>
-        </div>
-
-        <div className="p-3 bg-black/20 text-center">
-          <p className="text-[9px] text-gray-700 uppercase font-bold tracking-widest">
-            CatsiVard • Visual History
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // COMPONENTE PRINCIPAL
 
@@ -149,9 +20,6 @@ const StudentSessionCards = ({
   const [checkInStatus, setCheckInStatus] = useState(null); // 'success' | 'error' | null
   const [checkInMessage, setCheckInMessage] = useState("");
 
-  // Estados para el detalle del calendario
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [classForDetail, setClassForDetail] = useState(null);
 
   const scannerRef = useRef(null);
 
@@ -310,10 +178,6 @@ const StudentSessionCards = ({
     }, 300);
   };
 
-  const handleOpenDetail = (clase) => {
-    setClassForDetail(clase);
-    setDetailOpen(true);
-  };
 
   const closeScanner = async () => {
     try {
@@ -347,8 +211,7 @@ const StudentSessionCards = ({
         return (
           <div
             key={index}
-            onClick={() => handleOpenDetail(clase)}
-            className="group relative bg-white/5 border border-white/10 hover:border-blue-500/50 rounded-2xl p-6 transition-all cursor-pointer shadow-lg hover:-translate-y-1"
+            className="group relative bg-white/5 border border-white/10 hover:border-blue-500/50 rounded-2xl p-6 transition-all cursor-default shadow-lg hover:-translate-y-1"
           >
             <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-full border border-white/10">
@@ -425,11 +288,6 @@ const StudentSessionCards = ({
         );
       })}
 
-      <AttendanceCalendarModal
-        isOpen={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        subjectName={classForDetail?.subject}
-      />
 
       {scannerOpen && (
         <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
