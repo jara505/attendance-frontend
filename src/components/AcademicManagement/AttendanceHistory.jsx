@@ -52,7 +52,7 @@ const AttendanceHistory = () => {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-[#0d0b14] text-white p-4 md:p-8 font-sans">
+    <div className="min-h-screen w-full bg-[#0d0b14] text-white p-4 md:p-8 font-sans flex flex-col">
       {/* HEADER */}
       <header className="flex items-center justify-between pb-8 border-b border-white/10 mb-8">
         <div>
@@ -75,7 +75,7 @@ const AttendanceHistory = () => {
 
       {/* LOADING */}
       {loading && (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex-1 flex items-center justify-center py-20">
           <div className="text-gray-400 text-sm">
             Cargando asistencia...
           </div>
@@ -91,7 +91,7 @@ const AttendanceHistory = () => {
 
       {/* MATERIAS */}
       {!loading && !error && (
-        <main>
+        <main className="flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {subjects.map((s) => (
               <div
@@ -201,7 +201,7 @@ const AttendanceHistory = () => {
       )}
 
       {/* FOOTER */}
-      <footer className="mt-20 pt-8 border-t border-white/10 text-center text-xs text-gray-600">
+      <footer className="mt-auto pt-8 border-t border-white/10 text-center text-xs text-gray-600">
         © 2026 CatsiVard System • Student Edition
       </footer>
 

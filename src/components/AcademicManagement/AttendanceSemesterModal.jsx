@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   getSubjectAttendanceDetail,
@@ -25,21 +25,37 @@ const AttendanceSemesterModal = ({
   const [attendanceData, setAttendanceData] =
     useState([]);
 
-  const [loading, setLoading] =
+  const [showLoader, setShowLoader] =
     useState(false);
 
   const [error, setError] =
     useState("");
 
+  const cacheRef = useRef({});
+
   // FETCH DEL MES
   useEffect(() => {
     if (!isOpen || !subjectId) return;
 
+    const cacheKey = `${subjectId}-${activeMonth.number}-${currentYear}`;
+    const cached = cacheRef.current[cacheKey];
+
+    if (cached) {
+      setAttendanceData(cached);
+      setError("");
+      setShowLoader(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loaderTimer = setTimeout(() => {
+      if (!cancelled) setShowLoader(true);
+    }, 250);
+
     const fetchMonthAttendance =
       async () => {
         try {
-          setLoading(true);
-
           setError("");
 
           const data =
@@ -49,26 +65,44 @@ const AttendanceSemesterModal = ({
               currentYear
             );
 
-          setAttendanceData(
-            data.days || []
-          );
+          if (cancelled) return;
+
+          const days = data.days || [];
+          cacheRef.current[cacheKey] = days;
+          setAttendanceData(days);
         } catch (err) {
+          if (cancelled) return;
           console.error(err);
 
           setError(
             "No se pudo cargar el calendario."
           );
         } finally {
-          setLoading(false);
+          clearTimeout(loaderTimer);
+          if (!cancelled) {
+            setShowLoader(false);
+          }
         }
       };
 
     fetchMonthAttendance();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(loaderTimer);
+    };
   }, [
     activeMonth,
     subjectId,
     isOpen,
   ]);
+
+  // RESET CACHE AL CERRAR
+  useEffect(() => {
+    if (!isOpen) {
+      cacheRef.current = {};
+    }
+  }, [isOpen]);
 
   // MAPA DE DÍAS
   const attendanceMap = useMemo(() => {
@@ -210,13 +244,6 @@ const AttendanceSemesterModal = ({
           </div>
         </div>
 
-        {/* LOADING */}
-        {loading && (
-          <div className="px-5 pb-5 text-sm text-gray-400">
-            Cargando calendario...
-          </div>
-        )}
-
         {/* ERROR */}
         {error && (
           <div className="px-5 pb-5">
@@ -227,9 +254,16 @@ const AttendanceSemesterModal = ({
         )}
 
         {/* CALENDARIO */}
-        {!loading && !error && (
+        {!error && (
           <div className="p-5 pt-0">
-            <div className="bg-[#13111a] border border-white/5 rounded-2xl p-4 shadow-inner">
+            <div className="relative bg-[#13111a] border border-white/5 rounded-2xl p-4 shadow-inner transition-opacity duration-150" style={{ opacity: showLoader ? 0.5 : 1 }}>
+              {showLoader && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 bg-[#0d0b14]/80 px-3 py-1.5 rounded-full border border-white/10">
+                    Cargando...
+                  </span>
+                </div>
+              )}
               {/* DÍAS */}
               <div className="grid grid-cols-7 gap-1 mb-3 border-b border-white/5 pb-2">
                 {daysOfWeek.map((d) => (
